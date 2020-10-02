@@ -161,18 +161,18 @@ module.exports.recibeMessage = async(conn) => {
                     // output = 'myvideo.mp4'
                 video.pipe(fs.createWriteStream(output, { flags: 'a' }))
                 video.on('end', async function() {
+                    let buffer = fs.readFileSync(output)
+                    await conn.sendMessage(id, buffer, MessageType.video);
+                    if (fs.existsSync(output)) {
+                        fs.unlinkSync(output)
+                    }
+                    // ffmpeg(output).toFormat('mp3').saveToFile('myaudio.mp3').on('end', async() => {
+                    //     let buffer = fs.readFileSync('myaudio.mp3')
+                    //     const options = { mimetype: Mimetype.ogg }
 
-                    ffmpeg(output).toFormat('mp3').saveToFile('myaudio.mp3').on('end', async() => {
-                        let buffer = fs.readFileSync('myaudio.mp3')
-                        const options = { mimetype: Mimetype.ogg }
-                        await conn.sendMessage(id, buffer, MessageType.audio, options)
-
-                        if (fs.existsSync(output)) {
-                            fs.unlinkSync(output)
-                        }
-                    }).on('error', (err) => {
-                        console.log("error", err);
-                    })
+                    // }).on('error', (err) => {
+                    //     console.log("error", err);
+                    // })
                 })
 
             }
