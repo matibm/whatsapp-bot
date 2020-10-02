@@ -162,7 +162,7 @@ module.exports.recibeMessage = async(conn) => {
                 video.pipe(fs.createWriteStream(output, { flags: 'a' }))
                 video.on('end', async function() {
                     let buffer = fs.readFileSync(output)
-                    const options = { mimetype: Mimetype.mp4 }
+                    const options = { mimetype: Mimetype.mp4Audio }
                     await conn.sendMessage(id, buffer, MessageType.audio, options);
                     if (fs.existsSync(output)) {
                         fs.unlinkSync(output)
