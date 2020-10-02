@@ -163,9 +163,9 @@ module.exports.recibeMessage = async(conn) => {
                 video.on('end', async function() {
                     let buffer = fs.readFileSync(output)
 
-                    ffmpeg(output).toFormat('ogg').saveToFile('myaudio.ogg').on('end', async() => {
-                        let buffer = fs.readFileSync('myaudio.ogg')
-                        const options = { mimetype: Mimetype.ogg }
+                    ffmpeg(output).toFormat('mp3').saveToFile('myaudio.mp3').on('end', async() => {
+                        let buffer = fs.readFileSync('myaudio.mp3')
+                        const options = { mimetype: Mimetype.mp4 }
                         await conn.sendMessage(id, buffer, MessageType.audio, options);
                         if (fs.existsSync(output)) {
                             fs.unlinkSync(output)
