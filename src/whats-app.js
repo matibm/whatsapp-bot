@@ -100,24 +100,21 @@ module.exports.recibeMessage = async(conn) => {
 
     conn.on('message-new', async(m) => {
         let id = m.key.remoteJid
-        if (!m.message) return // if there is no text or media message
+        if (!m.message || m.key.remoteJid.indexOf('status@broadcast') != -1) return // if there is no text or media message
         const messageType = Object.keys(m.message)[0] // get what type of message it is -- text, image, video
             // if the message is not a text message
         if (messageType !== MessageType.text && messageType !== MessageType.extendedText) {
             // const buffer = await conn.downloadMediaMessage(m) // to decrypt & use as a buffer
 
-            const savedFilename = await conn.downloadAndSaveMediaMessage(m) // to decrypt & save to file
-            console.log(m.key.remoteJid + " sent media, saved at: " + savedFilename)
 
             if (messageType == 'imageMessage') {
+                const savedFilename = await conn.downloadAndSaveMediaMessage(m) // to decrypt & save to file
+
                 let imageMessage = m.message.imageMessage;
-                console.log(imageMessage);
                 let caption = imageMessage.caption.toLocaleLowerCase()
-                console.log(caption);
                 if (caption == 'sticker') {
                     const result = webp.cwebp(savedFilename, "sticker.webp", "-q 80");
                     result.then((response) => {
-                        console.log(response);
                         let buffer = fs.readFileSync('sticker.webp')
                         conn.sendMessage(id, buffer, MessageType.sticker)
 
@@ -129,7 +126,6 @@ module.exports.recibeMessage = async(conn) => {
         }
         if (messageType === MessageType.text) {
             let mensaje = m.message.conversation.toLocaleLowerCase()
-            console.log(mensaje);
             if (mensaje.indexOf('buscar: ') != -1) {
                 let semicolon = mensaje.indexOf(';');
                 let start = mensaje.indexOf('buscar: ') + 8;
@@ -148,7 +144,10 @@ module.exports.recibeMessage = async(conn) => {
             }
         }
         if (messageType === MessageType.extendedText) {
-            console.log(m);
+            if (m.message.extendedTextMessage.text.length > 1) {
+
+                return;
+            }
             let opcion = m.message.extendedTextMessage.text;
             let texto = m.message.extendedTextMessage.contextInfo.quotedMessage.conversation;
             let videoId
@@ -162,7 +161,6 @@ module.exports.recibeMessage = async(conn) => {
 
                 name = name.slice(0, name.indexOf(';'))
                 name += '.mp3'
-                console.log(name);
 
             }
 
@@ -173,10 +171,9 @@ module.exports.recibeMessage = async(conn) => {
                 video.on('end', async function() {
                     let buffer = fs.readFileSync(output)
 
-                    ffmpeg(output).toFormat('mp3').saveToFile(name).on('end', async() => {
-                        let buffer = fs.readFileSync(name)
-                        const options = { mimetype: Mimetype.mp4Audio, filename: name }
-                            // const options: MessageOptions = { quoted: m }
+                    ffmpeg(output).toFormat('mp3').saveToFile('myaudio.mp3').on('end', async() => {
+                        let buffer = fs.readFileSync('myaudio.mp3')
+                        const options = { filename: name, mimetype: Mimetype.mp4Audio }
 
                         await conn.sendMessage(id, buffer, MessageType.audio, options);
                         if (fs.existsSync(output)) {
