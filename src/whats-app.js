@@ -4,6 +4,7 @@ const webscraping = require('../webscraping')
 const WA = require('@adiwajshing/baileys')
 const MessageType = WA.MessageType;
 const Mimetype = WA.Mimetype;
+// var optionsp = WA.
 const client = new WhatsAppWeb()
 const cheerio = require('cheerio');
 const request = require('request-promise');
@@ -140,7 +141,7 @@ module.exports.recibeMessage = async(conn) => {
                 let contador = 0
                 videos.forEach(item => {
                     contador++;
-                    texto += `\n${contador}. Titulo: ${item.title}\nDescripcion: ${item.description}\n Autor: ${item.channelTitle}\n${contador}:id:${item.id};\n`
+                    texto += `\n${contador}. Titulo: ${item.title};\nDescripcion: ${item.description}\n Autor: ${item.channelTitle}\n${contador}:id:${item.id};\n`
                 })
 
                 conn.sendMessage(id, texto, MessageType.text);
@@ -151,12 +152,21 @@ module.exports.recibeMessage = async(conn) => {
             let opcion = m.message.extendedTextMessage.text;
             let texto = m.message.extendedTextMessage.contextInfo.quotedMessage.conversation;
             let videoId
+            let name
             if (opcion) {
                 let fin = texto.slice(texto.indexOf(opcion + ':id:') + 5)
                 let indexfin = fin.indexOf(';')
                 videoId = fin.slice(0, indexfin);
+
+                name = texto.slice(texto.indexOf(opcion + '. Titulo:') + 10)
+
+                name = name.slice(0, name.indexOf(';'))
+                name += '.mp3'
+                console.log(name);
+
             }
-            if (videoId) {
+
+            if (videoId && name) {
                 const video = youtubedl('https://www.youtube.com/watch?v=' + videoId, ['--format=18'], { start: downloaded, cwd: __dirname })
                     // output = 'myvideo.mp4'
                 video.pipe(fs.createWriteStream(output, { flags: 'a' }))
@@ -165,8 +175,10 @@ module.exports.recibeMessage = async(conn) => {
 
                     ffmpeg(output).toFormat('mp3').saveToFile('myaudio.mp3').on('end', async() => {
                         let buffer = fs.readFileSync('myaudio.mp3')
-                        const options = { mimetype: Mimetype.mp4Audio }
-                        await conn.sendMessage(id, buffer, MessageType.audio, options);
+                        const options = { mimetype: Mimetype.mp4Audio, filename: name }
+                            // const options: MessageOptions = { quoted: m }
+
+                        await conn.sendMessage(id, buffer, MessageType.audio, );
                         if (fs.existsSync(output)) {
                             fs.unlinkSync(output)
                         }
