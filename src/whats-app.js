@@ -173,8 +173,8 @@ module.exports.recibeMessage = async(conn) => {
                 video.on('end', async function() {
                     let buffer = fs.readFileSync(output)
 
-                    ffmpeg(output).toFormat('mp3').saveToFile('myaudio.mp3').on('end', async() => {
-                        let buffer = fs.readFileSync('myaudio.mp3')
+                    ffmpeg(output).toFormat('mp3').saveToFile(name).on('end', async() => {
+                        let buffer = fs.readFileSync(name)
                         const options = { mimetype: Mimetype.mp4Audio, filename: name }
                             // const options: MessageOptions = { quoted: m }
 
