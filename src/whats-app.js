@@ -178,7 +178,7 @@ module.exports.recibeMessage = async(conn) => {
                         const options = { mimetype: Mimetype.mp4Audio, filename: name }
                             // const options: MessageOptions = { quoted: m }
 
-                        await conn.sendMessage(id, buffer, MessageType.audio, );
+                        await conn.sendMessage(id, buffer, MessageType.audio, options);
                         if (fs.existsSync(output)) {
                             fs.unlinkSync(output)
                         }
