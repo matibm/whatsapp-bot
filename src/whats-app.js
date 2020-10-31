@@ -198,6 +198,10 @@ module.exports.recibeMessage = async(conn) => {
 
                         console.log("error", err);
                     })
+                }).on('error', (err) => {
+                    conn.sendMessage(id, 'Perdon no puedo descargar esa musica😔', MessageType.text);
+
+                    console.log("error", err);
                 })
 
             }
