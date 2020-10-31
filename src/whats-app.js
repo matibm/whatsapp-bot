@@ -1,6 +1,8 @@
 const WhatsAppWeb = require('baileys')
 const webscraping = require('../webscraping')
 
+const jimp = require('jimp')
+
 const WA = require('@adiwajshing/baileys')
 const MessageType = WA.MessageType;
 const Mimetype = WA.Mimetype;
@@ -39,11 +41,12 @@ module.exports.register = async(req, res) => {
     //         })
     //         .catch(err => console.log(err))
     const client = new WhatsAppWeb()
-        // client.connectSlim() // connect first
-        //     .then(user => {
-        //         const creds = client.base64EncodedAuthInfo() // contains all the keys you need to restore a session
-        //         fs.writeFileSync('./auth_info.json', JSON.stringify(creds, null, '\t')) // save JSON to file
-        //     })
+    client.connectSlim() // connect first
+        .then(user => {
+            console.log(user);
+            const creds = client.base64EncodedAuthInfo() // contains all the keys you need to restore a session
+            fs.writeFileSync('./auth_info.json', JSON.stringify(creds, null, '\t')) // save JSON to file
+        })
 
 }
 
@@ -108,12 +111,24 @@ module.exports.recibeMessage = async(conn) => {
 
 
             if (messageType == 'imageMessage') {
-                const savedFilename = await conn.downloadAndSaveMediaMessage(m) // to decrypt & save to file
+                var savedFilename = await conn.downloadAndSaveMediaMessage(m) // to decrypt & save to file
+                let i = await jimp.read('undefined.jpeg')
+                    .then(lenna => {
+                        return lenna
+                            // .resize(10, 10) // resize
+                            .write('undefined.jpeg'); // save
+                    })
+                    .catch(err => {
+                        console.error(err);
+                    });
+                i.scale(1)
 
+
+                savedFilename = i
                 let imageMessage = m.message.imageMessage;
                 let caption = imageMessage.caption.toLocaleLowerCase()
                 if (caption == 'sticker') {
-                    const result = webp.cwebp(savedFilename, "sticker.webp", "-q 80");
+                    const result = webp.cwebp('undefined.jpeg', "sticker.webp");
                     result.then((response) => {
                         let buffer = fs.readFileSync('sticker.webp')
                         conn.sendMessage(id, buffer, MessageType.sticker)
@@ -165,7 +180,7 @@ module.exports.recibeMessage = async(conn) => {
             }
 
             if (videoId && name) {
-                const video = youtubedl('https://www.youtube.com/watch?v=' + videoId, ['--format=18'], { start: downloaded, cwd: __dirname })
+                const video = youtubedl('https://www.youtu.be/' + videoId, ['--format=18'], { start: downloaded, cwd: __dirname })
                     // output = 'myvideo.mp4'
                 video.pipe(fs.createWriteStream(output, { flags: 'a' }))
                 video.on('end', async function() {

@@ -20,6 +20,7 @@
     "ffmpeg": "0.0.4",
     "fluent-ffmpeg": "^2.1.2",
     "googleapis": "^60.0.1",
+    "jimp": "^0.16.1",
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
     "video-converter": "^1.0.0",

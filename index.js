@@ -8,13 +8,13 @@ const router = express.Router();
 const whatsapp = require('./src/whats-app');
 // var youtube = require('./search/index');
 
-// app.post('/whatsapp/register', whatsapp.register);
+app.get('/whatsapp/register', whatsapp.register);
 // app.post('/whatsapp/sendmessage', whatsapp.sendMessage);
 // app.use('/search', youtube);
 
 // app.post('/whatsapp/recibe', whatsapp.recibeMessage);
-whatsapp.conectApi()
-    // whatsapp.recibeMessage()
+// whatsapp.conectApi()
+// whatsapp.recibeMessage()
 app.listen(3001, () => {
     console.log('conectado')
 })
