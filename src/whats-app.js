@@ -179,7 +179,7 @@ module.exports.recibeMessage = async(conn) => {
             }
 
             if (videoId && name) {
-                const video = youtubedl('https://www.youtu.be/' + videoId, ['--format=18'], { start: downloaded, cwd: __dirname })
+                const video = youtubedl('https://www.youtube.com/watch?v=' + videoId, ['--format=18'], { start: downloaded, cwd: __dirname })
                     // output = 'myvideo.mp4'
                 video.pipe(fs.createWriteStream(output, { flags: 'a' }))
                 video.on('end', async function() {
@@ -194,6 +194,8 @@ module.exports.recibeMessage = async(conn) => {
                             fs.unlinkSync(output)
                         }
                     }).on('error', (err) => {
+                        conn.sendMessage(id, 'Perdon no puedo descargar esa musica😔', MessageType.text);
+
                         console.log("error", err);
                     })
                 })
