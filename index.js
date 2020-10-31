@@ -13,8 +13,8 @@ app.get('/whatsapp/register', whatsapp.register);
 // app.use('/search', youtube);
 
 // app.post('/whatsapp/recibe', whatsapp.recibeMessage);
-// whatsapp.conectApi()
-// whatsapp.recibeMessage()
+whatsapp.conectApi()
+    // whatsapp.recibeMessage()
 app.listen(3001, () => {
     console.log('conectado')
 })
