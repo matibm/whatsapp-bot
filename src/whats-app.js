@@ -2,7 +2,8 @@ const WhatsAppWeb = require('baileys')
 const webscraping = require('../webscraping')
 
 const jimp = require('jimp')
-
+    // const cheerio = require('cheerio');
+    // const request = require('request-promise');
 const WA = require('@adiwajshing/baileys')
 const MessageType = WA.MessageType;
 const Mimetype = WA.Mimetype;
@@ -121,8 +122,6 @@ module.exports.recibeMessage = async(conn) => {
                         console.error(err);
                     });
                 i.scale(1)
-
-
                 savedFilename = i
                 let imageMessage = m.message.imageMessage;
                 let caption = imageMessage.caption.toLocaleLowerCase()
@@ -131,12 +130,20 @@ module.exports.recibeMessage = async(conn) => {
                     result.then((response) => {
                         let buffer = fs.readFileSync('sticker.webp')
                         conn.sendMessage(id, buffer, MessageType.sticker)
-
                     });
                 }
             }
+            // conn.sendMessage(id, 'Perdon no puedo descargar esa musica😔', MessageType.text);
+
+        }
+        if (messageType === MessageType.text) {
+            let mensaje = m.message.conversation.toLocaleLowerCase()
+            if (mensaje.length == 3) {
+                let obj = getCambio(mensaje)
+                conn.sendMessage(id, `Precio de Cambios Chaco: \n compra: ${(await obj).compra} Gs\n venta: ${(await obj).venta} Gs`, MessageType.text);
 
 
+            }
         }
         if (messageType === MessageType.text) {
             let mensaje = m.message.conversation.toLocaleLowerCase()
@@ -157,56 +164,56 @@ module.exports.recibeMessage = async(conn) => {
                 conn.sendMessage(id, texto, MessageType.text);
             }
         }
-        if (messageType === MessageType.extendedText) {
-            if (m.message.extendedTextMessage.text.length > 1) {
+        // if (messageType === MessageType.extendedText) {
+        //     if (m.message.extendedTextMessage.text.length > 1) {
 
-                return;
-            }
-            let opcion = m.message.extendedTextMessage.text;
-            let texto = m.message.extendedTextMessage.contextInfo.quotedMessage.conversation;
-            let videoId
-            let name
-            if (opcion) {
-                let fin = texto.slice(texto.indexOf(opcion + ':id:') + 5)
-                let indexfin = fin.indexOf(';')
-                videoId = fin.slice(0, indexfin);
+        //         return;
+        //     }
+        //     let opcion = m.message.extendedTextMessage.text;
+        //     let texto = m.message.extendedTextMessage.contextInfo.quotedMessage.conversation;
+        //     let videoId
+        //     let name
+        //     if (opcion) {
+        //         let fin = texto.slice(texto.indexOf(opcion + ':id:') + 5)
+        //         let indexfin = fin.indexOf(';')
+        //         videoId = fin.slice(0, indexfin);
 
-                name = texto.slice(texto.indexOf(opcion + '. Titulo:') + 10)
+        //         name = texto.slice(texto.indexOf(opcion + '. Titulo:') + 10)
 
-                name = name.slice(0, name.indexOf(';'))
-                name += '.mp3'
+        //         name = name.slice(0, name.indexOf(';'))
+        //         name += '.mp3'
 
-            }
+        //     }
 
-            if (videoId && name) {
-                const video = youtubedl('https://www.youtube.com/watch?v=' + videoId, ['--format=18'], { start: downloaded, cwd: __dirname })
-                    // output = 'myvideo.mp4'
-                video.pipe(fs.createWriteStream(output, { flags: 'a' }))
-                video.on('end', async function() {
-                    let buffer = fs.readFileSync(output)
+        //     if (videoId && name) {
+        //         const video = youtubedl('https://www.youtube.com/watch?v=' + videoId, ['--format=18'], { start: downloaded, cwd: __dirname })
+        //             // output = 'myvideo.mp4'
+        //         video.pipe(fs.createWriteStream(output, { flags: 'a' }))
+        //         video.on('end', async function() {
+        //             let buffer = fs.readFileSync(output)
 
-                    ffmpeg(output).toFormat('mp3').saveToFile('myaudio.mp3').on('end', async() => {
-                        let buffer = fs.readFileSync('myaudio.mp3')
-                        const options = { filename: name, mimetype: Mimetype.mp4Audio }
+        //             ffmpeg(output).toFormat('mp3').saveToFile('myaudio.mp3').on('end', async() => {
+        //                 let buffer = fs.readFileSync('myaudio.mp3')
+        //                 const options = { filename: name, mimetype: Mimetype.mp4Audio }
 
-                        await conn.sendMessage(id, buffer, MessageType.audio, options);
-                        if (fs.existsSync(output)) {
-                            fs.unlinkSync(output)
-                        }
-                    }).on('error', (err) => {
-                        conn.sendMessage(id, 'Perdon no puedo descargar esa musica😔', MessageType.text);
+        //                 await conn.sendMessage(id, buffer, MessageType.audio, options);
+        //                 if (fs.existsSync(output)) {
+        //                     fs.unlinkSync(output)
+        //                 }
+        //             }).on('error', (err) => {
+        //                 conn.sendMessage(id, 'Perdon no puedo descargar esa musica😔', MessageType.text);
 
-                        console.log("error", err);
-                    })
-                }).on('error', (err) => {
-                    conn.sendMessage(id, 'Perdon no puedo descargar esa musica😔', MessageType.text);
+        //                 console.log("error", err);
+        //             })
+        //         }).on('error', (err) => {
+        //             conn.sendMessage(id, 'Perdon no puedo descargar esa musica😔', MessageType.text);
 
-                    console.log("error", err);
-                })
+        //             console.log("error", err);
+        //         })
 
-            }
+        //     }
 
-        }
+        // }
 
         // if (imageMessage && m.key.remoteJid != 'status@broadcast') {
 
@@ -358,6 +365,17 @@ module.exports.recibeMessage = async(cliente) => {
     }, false)
 }*/
 
+async function getCambio(moneda) {
+    const $ = await request({
+        uri: 'https://www.cambioschaco.com.py/perfil-de-moneda/?currency=usd',
+        transform: body => cheerio.load(body)
+
+    });
+    // console.log('webscraping a cambioschaco dolar compra: ' + $('#exchange-'+moneda).find('.purchase').html() + ' venta: ' + $('#exchange-usd').find('.sale').html());
+    let compra = $('#exchange-' + moneda).find('.purchase').html()
+    let venta = $('#exchange-' + moneda).find('.sale').html()
+    return { compra: compra, venta: venta };
+}
 // const video = youtubedl('http://www.youtube.com/watch?v=90AiXO1pAiA',
 //     // Optional arguments passed to youtube-dl.
 //     ['--format=18'],
