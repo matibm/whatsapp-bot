@@ -42,51 +42,101 @@ module.exports.register = async(req, res) => {
     //         })
     //         .catch(err => console.log(err))
     const client = new WhatsAppWeb()
-    client.connectSlim() // connect first
-        .then(user => {
-            const creds = client.base64EncodedAuthInfo() // contains all the keys you need to restore a session
-            fs.writeFileSync('./auth_info.json', JSON.stringify(creds, null, '\t')) // save JSON to file
+
+    // console.log(client.generateQRCode([]));
+    client.onReadyForPhoneAuthentication = ([ref, publicKey, clientID]) => {
+        const str = ref + "," + publicKey + "," + clientID
+        console.log(str);
+        res.status(200).json({
+            ok: true,
+            token: str
         })
+    }
+    client.connectSlim() // connect first
+        .then(async user => {
+            const creds = client.base64EncodedAuthInfo() // contains all the keys you need to restore a session
+            let str = `AUTH_INFO="${JSON.stringify(creds, null, '\t').toString().replace(/\s/g, '')}"`
+            fs.writeFileSync('./.env', str) // save JSON to file 
+            const conn = new WA.WAConnection
+            conn.loadAuthInfo(creds)
+            await conn.connect()
+            const unread = await conn.loadAllUnreadMessages()
+            this.recibeMessage(conn)
+
+        }).then(r => {
+            // console.log(r);
+            // const conn = new WA.WAConnection
+
+            // let auth = JSON.parse(process.env.AUTH_INFO)
+            // conn.loadAuthInfo(auth) // will load JSON credentials from file
+            // await conn.connect()
+            // const unread = await conn.loadAllUnreadMessages()
+        })
+        // setTimeout(async() => {
+        //     const conn = new WA.WAConnection
+
+    //     let auth = JSON.parse(process.env.AUTH_INFO)
+    //     conn.loadAuthInfo(auth) // will load JSON credentials from file
+    //     await conn.connect()
+    //     const unread = await conn.loadAllUnreadMessages()
+    // }, 30000);
+    // const conn = new WA.WAConnection
+    // conn.on('qr', qr => {
+    //     console.log(qr);
+    // })
+
 
 }
 
 module.exports.conectApi = async(req, res) => {
-        // client.connect()
-        //     .then(([user, chats, contacts, unread]) => {
-        //         console.log("oh hello " + user.name + " (" + user.id + ")")
-        //         console.log("you have " + unread.length + " unread messages")
-        //         console.log("you have " + chats.length + " chats")
-
-        //         res.jsonp({ mensaje: 'Autenticación exitosa' });
-        //     })
-        //     .catch(err => console.log(err))
 
         const cliente = new WhatsAppWeb()
-            // let authInfo = fs.readFileSync('./auth_info.json')
-            // console.log(JSON.parse(authInfo.toString()));
+
         const conn = new WA.WAConnection
+        console.log("pasa", process.env.AUTH_INFO);
 
         let auth = JSON.parse(process.env.AUTH_INFO)
         conn.loadAuthInfo(auth) // will load JSON credentials from file
         await conn.connect()
-
         const unread = await conn.loadAllUnreadMessages()
+            // setInterval(async() => {
 
-
-        // console.log('oh hello ' + conn.user.name + ' (' + conn.user.jid + ')')
-        // console.log('you have ' + conn.chats.length + ' chats & ' + Object.keys(conn.contacts).length + ' contacts')
-        // console.log('you have ' + unread.length + ' unread messages')
+        //     if (!conn.user) {
+        //         console.log(`pesadeando ${new Date()}`);
+        //         try {
+        //             await conn.connect()
+        //             await conn.loadAllUnreadMessages()
+        //             console.log(conn);
+        //         } catch (error) {
+        //             console.log("error");
+        //             console.log(error);
+        //         }
+        //     } else {
+        //         console.log(`pesadeando ${new Date()} - ${conn.user.name}`);
+        //     }
+        // }, 2000);
         this.recibeMessage(conn)
+        conn.on('close', async(reason) => {
+            console.log("is reconecting:", reason.isReconnecting);
+            console.log(reason)
+            if (reason.reason === 'lost') {
+                conn.close()
+                conn.loadAuthInfo(auth)
+                conn.connect()
+                return {}
+            }
+            if (reason.reason != 'intentional') {
+                console.log('Unable to reconnect')
+            }
+            if (reason.reason == 'invalid_session') {
 
-
-
-        // cliente.connectSlim(JSON.parse(authInfo.toString())) // will load JSON credentials from file
-        //     .then(async user => {
-        //         console.log("conectado sin codigo QR");
-
-        //         this.recibeMessage(cliente)
-        //     }).catch({})
-
+            }
+        })
+        conn.on('ws-close', async(reason) => {
+            console.log('ws close', reason);
+            fs.writeFileSync('./reason', reason) // save JSON to file 
+            this.conectApi()
+        })
     }
     // ENVIAR MENSAJES
 
