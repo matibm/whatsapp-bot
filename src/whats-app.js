@@ -99,22 +99,7 @@ module.exports.conectApi = async(req, res) => {
         conn.loadAuthInfo(auth) // will load JSON credentials from file
         await conn.connect()
         const unread = await conn.loadAllUnreadMessages()
-            // setInterval(async() => {
 
-        //     if (!conn.user) {
-        //         console.log(`pesadeando ${new Date()}`);
-        //         try {
-        //             await conn.connect()
-        //             await conn.loadAllUnreadMessages()
-        //             console.log(conn);
-        //         } catch (error) {
-        //             console.log("error");
-        //             console.log(error);
-        //         }
-        //     } else {
-        //         console.log(`pesadeando ${new Date()} - ${conn.user.name}`);
-        //     }
-        // }, 2000);
         this.recibeMessage(conn)
         conn.on('close', async(reason) => {
             console.log("is reconecting:", reason.isReconnecting);
@@ -130,6 +115,13 @@ module.exports.conectApi = async(req, res) => {
             }
             if (reason.reason == 'invalid_session') {
 
+            }
+            if (reason.reason == 'timed out') {
+
+                this.conectApi()
+            }
+            if (reason.reason == 'timed_out') {
+                this.conectApi()
             }
         })
         conn.on('ws-close', async(reason) => {
