@@ -20,6 +20,8 @@
         "express": "^4.17.1",
         "ffmpeg": "0.0.4",
         "fluent-ffmpeg": "^2.1.2",
+        "gifit": "0.0.3",
+        "gify": "^0.2.0",
         "googleapis": "^60.0.1",
         "jimp": "^0.16.1",
         "request": "^2.88.2",

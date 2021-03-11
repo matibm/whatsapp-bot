@@ -1,5 +1,8 @@
 const WhatsAppWeb = require('baileys')
 const webscraping = require('../webscraping')
+const gifit = require('gifit')
+const gify = require('gify')
+var ffmpeg = require('ffmpeg');
 
 const jimp = require('jimp')
     // const cheerio = require('cheerio');
@@ -21,7 +24,8 @@ const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 // const ffmpeg = require('fluent-ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegPath);
 // const app = require('express');
-// const youtube = require('./search/index');
+const path = require('path')
+    // const youtube = require('./search/index');
 const search = require('../search/index');
 const { env } = require('process');
 
@@ -142,7 +146,7 @@ module.exports.sendMessage = async(req, res) => {
 }
 
 module.exports.recibeMessage = async(conn) => {
-
+    console.log("recibiendo mensajes", new Date());
     conn.on('message-new', async(m) => {
         let id = m.key.remoteJid
         if (!m.message || m.key.remoteJid.indexOf('status@broadcast') != -1) return // if there is no text or media message
@@ -151,7 +155,25 @@ module.exports.recibeMessage = async(conn) => {
         if (messageType !== MessageType.text && messageType !== MessageType.extendedText) {
             // const buffer = await conn.downloadMediaMessage(m) // to decrypt & use as a buffer
 
+            if (messageType === 'videoMessage') {
+                return
+                var savedFilename = await conn.downloadAndSaveMediaMessage(m)
 
+                await gify(path.join(__dirname + '/../undefined.mp4'), path.join(__dirname + '/../undefined.gif'), {}, (err) => {
+                    console.log(err);
+                    let videoMessage = m.message.videoMessage;
+
+                    let caption = videoMessage.caption.toLocaleLowerCase()
+                    if (caption == 'sticker') {
+                        const result = webp.gwebp('undefined.gif', "sticker.webp");
+                        result.then((response) => {
+                            let buffer = fs.readFileSync('sticker.webp')
+                            conn.sendMessage(id, buffer, MessageType.sticker)
+                        });
+                    }
+                })
+
+            }
             if (messageType == 'imageMessage') {
                 var savedFilename = await conn.downloadAndSaveMediaMessage(m) // to decrypt & save to file
                 let i = await jimp.read('undefined.jpeg')
