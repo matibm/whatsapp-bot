@@ -24,6 +24,7 @@
         "gify": "^0.2.0",
         "googleapis": "^60.0.1",
         "jimp": "^0.16.1",
+        "mongoose": "^5.12.3",
         "request": "^2.88.2",
         "request-promise": "^4.2.6",
         "socket.io": "^3.1.0",

@@ -4,8 +4,8 @@ const bodyParser = require('body-parser');
 const router = express.Router();
 var cors = require('cors');
 var path = require('path');
-
-// app.use(bodyParser.json())
+const mongoose = require('mongoose')
+    // app.use(bodyParser.json())
 app.use(cors({ credentials: true, origin: 'http://localhost:4200' }));
 
 const http = require('http').Server(app);
@@ -33,6 +33,11 @@ app.get('/*', (req, res) => {
 // });
 // app.post('/whatsapp/sendmessage', whatsapp.sendMessage);
 // app.use('/search', youtube);
+
+mongoose.connection.openUri('mongodb://localhost:27017/whatsapp', (err, res) => {
+    if (err) throw err;
+    console.log("Base de datos:  \x1b[32m%s\x1b[0m", ' online');
+})
 
 // app.post('/whatsapp/recibe', whatsapp.recibeMessage);
 whatsapp.conectApi()
