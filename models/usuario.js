@@ -5,7 +5,8 @@ var usuario = new Schema({
 
     nombre: { type: Schema.Types.String },
     tel: { type: Schema.Types.String },
-    email: { type: Schema.Types.String }
+    email: { type: Schema.Types.String },
+    jid: { type: Schema.Types.String }
 
 }, { collection: 'usuarios' });
 

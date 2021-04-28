@@ -6,10 +6,12 @@ const client = new WhatsAppWeb()
 const fs = require('fs')
 const Usuario = require('./../models/usuario')
 const Producto = require('./../models/producto')
+const Sub = require('./../models/subscripcion')
 const path = require('path')
 const bcrypt = require('bcrypt');
 
 const { env } = require('process');
+const producto = require('./../models/producto');
 
 let downloaded = 0
 
@@ -213,7 +215,16 @@ module.exports.recibeMessage = async(conn) => {
                 conn.sendMessage(id, txt, MessageType.text);
 
             }
-            if (mensaje.indexOf('-r') >= 0) {
+
+            if (mensaje.indexOf('-rp') >= 0) {
+
+                let config = getConfig()
+                console.log(config);
+                config.principal = id
+                updateConfig(config)
+                conn.sendMessage(id, 'numero guardado correctamente', MessageType.text);
+
+            } else if (mensaje.indexOf('-r') >= 0) {
                 let txt = `Por favor registre sus datos \n En el siguiente formato: \n [nombre, marca, precio, email, pass]`
                 conn.sendMessage(id, txt, MessageType.text);
 
@@ -240,8 +251,24 @@ module.exports.recibeMessage = async(conn) => {
         }
         if (messageType === MessageType.extendedText) {
             try {
-                let mensaje = m.message.extendedTextMessage.text
+                let s = ''
+                s.toLocaleLowerCase()
+                let mensaje = m.message.extendedTextMessage.text.toLocaleLowerCase()
+                console.log(mensaje);
                 let context = m.message.extendedTextMessage.contextInfo
+                console.log("context");
+                console.log(context);
+                if ('ok' == mensaje) {
+                    let txt = m.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage.caption
+
+                    let idsub = txt.slice(txt.indexOf('id:') + 3)
+                    console.log(idsub);
+                    let sub = await Sub.findById(idsub).populate('producto usuario')
+                    let jid = sub.usuario.jid
+                    let texto = `pago aprobado\nEmail: ${sub.producto.email}\nContraseña: ${sub.producto.pass}`
+                    conn.sendMessage(jid, texto, MessageType.text);
+
+                }
                 if (!context.quotedMessage.conversation) {
                     return
                 }
@@ -256,14 +283,23 @@ module.exports.recibeMessage = async(conn) => {
                         console.log("coinciden");
                         return;
                     }
-
+                    let usuario = await Usuario.findOne({ jid: id })
+                    if (!usuario) {
+                        usuario = new Usuario({ jid: id }).save()
+                    }
                     let id_product = textExtended.slice(
                         textExtended.indexOf('id:' + mensaje) + 3 + mensaje.toString().length,
                         textExtended.indexOf('id:' + mensaje) + 3 + mensaje.toString().length + 24)
 
                     let product = await Producto.findById(id_product)
+                    console.log(usuario);
+                    let subs = await new Sub({
+                        producto: product._id,
+                        usuario: usuario._id
 
-                    let texto = `Ok elegiste ${product.marca} ${product.tipo}\nPaga: ${product.precio} Gs\nY hablamos🤙`
+                    }).save()
+                    let texto =
+                        `Elegiste ${product.marca} ${product.tipo}\nPor favor realiza el pago: (${product.precio} Gs)\nLuego seleccione y responde este mensaje con la imagen del ticket\nid:${subs._id}`
                     conn.sendMessage(id, texto, MessageType.text);
 
                 }
@@ -272,10 +308,57 @@ module.exports.recibeMessage = async(conn) => {
             }
 
         }
+        if (messageType === MessageType.image) {
 
+            if (m.message.imageMessage.contextInfo) {
+                if (m.message.imageMessage.contextInfo.quotedMessage) {
+                    if (m.message.imageMessage.contextInfo.quotedMessage.conversation) {
+                        try {
+                            var savedFilename = await conn.downloadAndSaveMediaMessage(m) // to decrypt & save to file
+                            console.log(savedFilename);
+                            let folderpath = `/../tickets/${id.slice(0, 10)}`
+                            let filename = `${Date.now()}.jpeg`
+                            if (!fs.existsSync(path.join(__dirname, folderpath))) {
+                                fs.mkdirSync(path.join(__dirname, folderpath))
+                            }
+                            fs.copyFileSync(path.join(__dirname, `/../${savedFilename}`), path.join(__dirname, `/../tickets/${id.slice(0, 10)}/${filename}`))
+                            let txt = m.message.imageMessage.contextInfo.quotedMessage.conversation
+                            let idsub = txt.slice(txt.indexOf('id:') + 3)
+                            if (!idsub) {
+                                return
+                            }
+                            let sub = await Sub.findById(idsub).populate('producto usuario')
+                            let producto = sub.producto
+                            console.log(producto);
+                            let texto = `Nuevo Ticket por el producto: \ntipo: ${producto.tipo},\nmarca: ${producto.marca},\nprecio: ${producto.precio},\nid:${sub._id}`
+
+                            let options = { mimetype: 'image/jpeg', caption: texto, filename: "file.jpeg" };
+
+                            let buffer = fs.readFileSync(path.join(__dirname, `/../tickets/${id.slice(0, 10)}/${filename}`))
+                            let config = getConfig()
+                            conn.sendMessage(config.principal, buffer, MessageType.image, options);
+
+                        } catch (error) {
+                            console.log(error);
+                        }
+                    }
+                }
+            }
+        }
 
     })
 
+
+
+}
+
+function getConfig() {
+    let config = JSON.parse(fs.readFileSync(path.join(__dirname, '/../config.json')))
+    return config
+}
+
+function updateConfig(config) {
+    fs.writeFileSync(path.join(__dirname, '/../config.json'), JSON.stringify(config))
 
 
 }

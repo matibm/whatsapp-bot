@@ -13,4 +13,4 @@ var producto = new Schema({
 
 }, { collection: 'productos' });
 
-module.exports = mongoose.model('Productos', producto);
+module.exports = mongoose.model('Producto', producto);
