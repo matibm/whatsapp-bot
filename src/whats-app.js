@@ -115,7 +115,7 @@ module.exports.sendMessage = async(req, res) => {
 
 module.exports.recibeMessage = async(conn) => {
     console.log("recibiendo mensajes", new Date());
-    conn.on('message-new', async(m) => {
+    conn.on('chat-update', async(m) => {
         let id = m.key.remoteJid
         console.log(m);
         if (m.key.fromMe) {
