@@ -116,18 +116,22 @@ module.exports.sendMessage = async(req, res) => {
 module.exports.recibeMessage = async(conn) => {
     console.log("recibiendo mensajes", new Date());
     conn.on('chat-update', async(m) => {
-        let id = m.key.remoteJid
+        let id = m.jid
+        let mensaje
         console.log(m);
-        if (m.key.fromMe) {
-            console.log("retornando");
-            return
-        }
-        if (!m.message || m.key.remoteJid.indexOf('status@broadcast') != -1) return // if there is no text or media message
-        const messageType = Object.keys(m.message)[0] // get what type of message it is -- text, image, video
+        if (m.messages && m.count) {
+            const message = m.messages.all()[0]
+                // console.log(message)
+            mensaje = message.message.conversation.toLocaleLowerCase()
+        } else { console.log(m, "returning"); return } // if (m.kez
+        if (id.indexOf('status@broadcast') != -1) return // if there is no text or media message
+
+        const messageType = Object.keys(m.messages.all()[0])[0] // get what type of message it is -- text, image, video
             // if the message is not a text message
-        console.log(messageType);
-        if (messageType === MessageType.text) {
-            let mensaje = m.message.conversation.toLocaleLowerCase()
+            // console.log(messageType);
+        console.log(mensaje);
+        if (messageType === 'messageStubParameters') {
+            console.log("es un texto");
 
             if (mensaje == 'nuevo') {
                 let jsontxt = {
@@ -136,7 +140,7 @@ module.exports.recibeMessage = async(conn) => {
                     email: ''
                 }
                 let text = `Por favor mande un mensaje en este formato  
-[nombre, tel, email]`
+    [nombre, tel, email]`
 
                 conn.sendMessage(id, text, MessageType.text);
 
@@ -154,9 +158,9 @@ module.exports.recibeMessage = async(conn) => {
                 let data = await Usuario.insertMany([obj])
                     //g(data);
             }
-            if (mensaje.indexOf("producto-[") != -1) {
+            if (mensaje.indexOf("-np[") != -1) {
 
-                let msg = mensaje.replace('producto-[', '')
+                let msg = mensaje.replace('-np[', '')
                 msg = msg.replace(']', '')
 
                 let arr = msg.split(', ')
@@ -178,8 +182,8 @@ module.exports.recibeMessage = async(conn) => {
                 let tel = mensaje.slice(17)
                 tel = tel.trim()
                     //g(tel);
-                let user = await Usuario.findOne({ tel: tel }).select('tel nombre email')
-                delete user._id
+                let user = await Usuario.findOne({ tel: tel }).select('-_id tel nombre email')
+
                 conn.sendMessage(id, `Nombre: ${user.nombre}\nEmail: ${user.email}`, MessageType.text, );
 
             }
@@ -194,24 +198,24 @@ module.exports.recibeMessage = async(conn) => {
                     const element = productos[i];
 
                     txt +=
-                        `${i+1}.
-  tipo: ${element.tipo},
-  marca: ${element.marca},
-  precio: ${element.precio},
-  id:${i+1}${element._id}
+                        `${i + 1}.
+      tipo: ${element.tipo},
+      marca: ${element.marca},
+      precio: ${element.precio},
+      id:${i + 1}${element._id}
 
 
-`
+    `
                 }
 
-
+                console.log(id);
                 let hash = bcrypt.hashSync(id, 10)
                 txt += `token:${hash}`
                 conn.sendMessage(id, txt, MessageType.text);
 
             }
             if (mensaje.indexOf('nuevo-producto') >= 0) {
-                let txt = `Por favor mande nuevo producto \n En el siguiente formato: \n [tipo, marca, precio, email, pass]`
+                let txt = `Para crear un producto escriba \n En el siguiente formato: \n -np[tipo, marca, precio, email, pass]`
                 conn.sendMessage(id, txt, MessageType.text);
 
             }
@@ -249,65 +253,116 @@ module.exports.recibeMessage = async(conn) => {
                 conn.sendMessage(id, texto, MessageType.text);
             }
         }
-        if (messageType === MessageType.extendedText) {
-            try {
-                let s = ''
-                s.toLocaleLowerCase()
-                let mensaje = m.message.extendedTextMessage.text.toLocaleLowerCase()
-                console.log(mensaje);
-                let context = m.message.extendedTextMessage.contextInfo
-                console.log("context");
-                console.log(context);
-                if ('ok' == mensaje) {
-                    let txt = m.message.extendedTextMessage.contextInfo.quotedMessage.imageMessage.caption
+        if (m.messages) {
+            if (m.messages.array[0]) {
+                if (m.messages.array[0].message) {
+                    if (m.messages.array[0].message.extendedTextMessage) {
+                        if (m.messages.array[0].message.extendedTextMessage.contextInfo) {
+                            if (m.messages.array[0].message.extendedTextMessage.contextInfo.quotedMessage) {
 
-                    let idsub = txt.slice(txt.indexOf('id:') + 3)
-                    console.log(idsub);
-                    let sub = await Sub.findById(idsub).populate('producto usuario')
-                    let jid = sub.usuario.jid
-                    let texto = `pago aprobado\nEmail: ${sub.producto.email}\nContraseña: ${sub.producto.pass}`
-                    conn.sendMessage(jid, texto, MessageType.text);
 
-                }
-                if (!context.quotedMessage.conversation) {
-                    return
-                }
+                                let mensajeExtended = m.messages.array[0].message.extendedTextMessage.contextInfo.quotedMessage.conversation
+                                try {
+                                    let s = ''
+                                    s.toLocaleLowerCase()
+                                    let mensaje = m.messages.array[0].message.extendedTextMessage.text.toLocaleLowerCase()
+                                    let context = mensajeExtended
 
-                if (!isNaN(mensaje)) {
-                    // console.log("es un numero", mensaje);
-                    let textExtended = context.quotedMessage.conversation
-                    let token = textExtended.slice(textExtended.indexOf('token:') + 6)
-                    console.log(token);
-                    let permission = bcrypt.compareSync(id, token)
-                    if (!permission) {
-                        console.log("coinciden");
-                        return;
+                                    if ('ok' == mensaje) {
+                                        let caption = m.messages.array[0].message.extendedTextMessage.contextInfo.quotedMessage.imageMessage.caption
+
+                                        let idsub = caption.slice(caption.indexOf('id:') + 3)
+                                        console.log(idsub);
+                                        let sub = await Sub.findById(idsub).populate('producto usuario')
+                                        console.log(sub);
+                                        let jid = sub.usuario.jid
+                                        let texto = `pago aprobado\nEmail: ${sub.producto.email}\nContraseña: ${sub.producto.pass}`
+                                        conn.sendMessage(jid, texto, MessageType.text);
+
+                                    }
+
+
+                                    if (!isNaN(mensaje)) {
+                                        // console.log("es un numero", mensaje);
+                                        let textExtended = mensajeExtended
+                                        let token = textExtended.slice(textExtended.indexOf('token:') + 6)
+                                        console.log(token);
+                                        let permission = bcrypt.compareSync(id, token)
+                                        if (!permission) {
+                                            console.log("coinciden");
+                                            return;
+                                        }
+                                        let usuario = await Usuario.findOne({ jid: id })
+                                        if (!usuario) {
+                                            usuario = new Usuario({ jid: id }).save()
+                                        }
+                                        let id_product = textExtended.slice(
+                                            textExtended.indexOf('id:' + mensaje) + 3 + mensaje.toString().length,
+                                            textExtended.indexOf('id:' + mensaje) + 3 + mensaje.toString().length + 24)
+
+                                        let product = await Producto.findById(id_product)
+                                        console.log(usuario);
+                                        let subs = await new Sub({
+                                            producto: product._id,
+                                            usuario: usuario._id
+
+                                        }).save()
+                                        console.log(subs);
+                                        let texto =
+                                            `Elegiste ${product.marca} ${product.tipo}\nPor favor realiza el pago: (${product.precio} Gs)\nLuego seleccione y responde este mensaje con la imagen del ticket\nid:${subs._id}`
+                                        conn.sendMessage(id, texto, MessageType.text);
+
+                                    }
+                                } catch (error) {
+                                    console.log(error);
+                                }
+
+                            }
+
+                        }
+
                     }
-                    let usuario = await Usuario.findOne({ jid: id })
-                    if (!usuario) {
-                        usuario = new Usuario({ jid: id }).save()
+                    if (m.messages.array[0].message.imageMessage) {
+                        if (m.messages.array[0].message.imageMessage.contextInfo) {
+                            if (m.messages.array[0].message.imageMessage.contextInfo.quotedMessage) {
+                                try {
+                                    console.log(m.messages.array[0].message.imageMessage.contextInfo.quotedMessage);
+                                    var savedFilename = await conn.downloadAndSaveMediaMessage(m.messages.array[0], 'undefined.jpeg', false) // to decrypt & save to file
+                                    let folderpath = `/../tickets/${id.slice(0, 10)}`
+                                    let filename = `${Date.now()}.jpeg`
+                                    if (!fs.existsSync(path.join(__dirname, folderpath))) {
+                                        fs.mkdirSync(path.join(__dirname, folderpath))
+                                    }
+                                    fs.copyFileSync(path.join(__dirname, `/../${savedFilename}`), path.join(__dirname, `/../tickets/${id.slice(0, 10)}/${filename}`))
+                                    let txt = m.messages.array[0].message.imageMessage.contextInfo.quotedMessage.conversation
+                                    let idsub = txt.slice(txt.indexOf('id:') + 3)
+                                    if (!idsub) {
+                                        return
+                                    }
+                                    let sub = await Sub.findById(idsub).populate('producto usuario')
+                                    let producto = sub.producto
+                                    console.log(producto);
+                                    let texto = `Nuevo Ticket por el producto: \ntipo: ${producto.tipo},\nmarca: ${producto.marca},\nprecio: ${producto.precio},\nid:${sub._id}`
+
+                                    let options = { mimetype: 'image/jpeg', caption: texto, filename: "file.jpeg" };
+
+                                    let buffer = fs.readFileSync(path.join(__dirname, `/../tickets/${id.slice(0, 10)}/${filename}`))
+                                    let config = getConfig()
+                                    console.log(config);
+                                    conn.sendMessage(config.principal, buffer, MessageType.image, options);
+
+                                } catch (error) {
+                                    console.log(error);
+                                }
+                            }
+                        }
                     }
-                    let id_product = textExtended.slice(
-                        textExtended.indexOf('id:' + mensaje) + 3 + mensaje.toString().length,
-                        textExtended.indexOf('id:' + mensaje) + 3 + mensaje.toString().length + 24)
-
-                    let product = await Producto.findById(id_product)
-                    console.log(usuario);
-                    let subs = await new Sub({
-                        producto: product._id,
-                        usuario: usuario._id
-
-                    }).save()
-                    let texto =
-                        `Elegiste ${product.marca} ${product.tipo}\nPor favor realiza el pago: (${product.precio} Gs)\nLuego seleccione y responde este mensaje con la imagen del ticket\nid:${subs._id}`
-                    conn.sendMessage(id, texto, MessageType.text);
-
                 }
-            } catch (error) {
-                console.log(error);
+
             }
 
         }
+
         if (messageType === MessageType.image) {
 
             if (m.message.imageMessage.contextInfo) {
